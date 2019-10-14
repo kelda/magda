@@ -1,0 +1,201 @@
+version: '2'
+services:
+  authorization-api:
+    environment:
+      - "NODE_ENV=production"
+      - "JWT_SECRET=Keibah7owaidaebe"
+      - "PGUSER=client"
+    image: "gcr.io/magda-221800/magda-authorization-api:0.0.50-0"
+    entrypoint: [
+        "node",
+        "/usr/src/app/component/dist/index.js",
+        "--listenPort", "80",
+        "--dbHost", "authorization-db",
+        "--dbPort", "5432"
+    ]
+    networks:
+      network:
+
+  combined-db:
+    image: "gcr.io/magda-221800/magda-postgres:0.0.50-2"
+    volumes_from:
+      - combined-db-data
+    environment:
+      - "PGDATA=/data"
+      - "PGUSER=postgres"
+      - "PGPASSWORD=Eij3wahlohnaewoo"
+      - "CLIENT_USERNAME=client"
+      - "CLIENT_PASSWORD=Eij3wahlohnaewoo"
+    networks:
+      network:
+        aliases:
+          - authorization-db
+          - content-db
+          - registry-db
+          - session-db
+
+  combined-db-data:
+    image: "gcr.io/magda-221800/magda-postgres-data:0.0.50-2"
+    entrypoint: "tail -f /dev/null"
+    volumes:
+      - /data
+
+  content-api:
+    image: "gcr.io/magda-221800/magda-content-api:0.0.50-0"
+    entrypoint: [
+        "node",
+        "/usr/src/app/component/dist/index.js",
+        "--authApiUrl", "http://authorization-api/v0",
+        "--listenPort", "80",
+        "--dbHost", "content-db",
+        "--dbPort", "5432"
+    ]
+    environment:
+      - "NODE_ENV=production"
+      - "JWT_SECRET=Keibah7owaidaebe"
+      - "PGUSER=client"
+    networks:
+      network:
+
+  elasticsearch:
+    image: 'elasticsearch:1'
+    #image: "gcr.io/magda-221800/magda-elasticsearch:0.0.50-1"
+    #volumes_from:
+      #- elasticsearch-data
+      ## TODO mount to data dir
+    #environment:
+      #- "NAMESPACE=namespace"
+      #- "NODE_NAME=node"
+      #- "NODE_DATA=true"
+      #- "NODE_MASTER=true"
+      #- "CLUSTER_NAME=myesdb"
+      #- "NODE_INGEST=true"
+      #- "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      ##- "ES_PLUGINS_INSTALL="
+      #- "NETWORK_HOST=0.0.0.0"
+      #- "HTTP_ENABLE=true"
+      #- "REPO=/snapshots"
+    networks:
+      network:
+
+  elasticsearch-data:
+    image: "gcr.io/magda-221800/magda-elasticsearch-data:0.0.50-2"
+    entrypoint: "tail -f /dev/null"
+    volumes:
+      - /data
+
+  gateway:
+    ports:
+      - '8080:80'
+    image: "gcr.io/magda-221800/magda-gateway:0.0.50-0"
+    entrypoint: [
+        "node",
+        "/usr/src/app/component/dist/index.js",
+        "--listenPort", "80",
+        "--externalUrl", "http://minikube.data.gov.au:30100",
+        "--dbHost", "session-db",
+        "--dbPort", "5432",
+        "--googleClientId", "288595486497-0h9rjtjnvc8hg4tj9vuvpkla782queb4.apps.googleusercontent.com",
+        "--enableAuthEndpoint", "true",
+        "--proxyRoutesJson", "/etc/config/routes.json",
+        "--helmetJson", "/etc/config/helmet.json",
+        "--cspJson", "/etc/config/csp.json",
+        "--corsJson", "/etc/config/cors.json",
+        "--web", "http://web",
+        "--authorizationApi", "http://authorization-api/v0",
+        "--previewMap", "http://preview-map:6110",
+        "--ckanUrl", "https://data.gov.au"
+    ]
+    environment:
+      - "NODE_ENV=production"
+      - "JWT_SECRET=Keibah7owaidaebe"
+      - "SESSION_SECRET=Iexoreitoshee2mo"
+      - "USER_ID=00000000-0000-4000-8000-000000000000"
+      - "PGUSER=client"
+    volumes:
+      - './config/routes.json:/etc/config/routes.json'
+      - './config/helmet.json:/etc/config/helmet.json'
+      - './config/cors.json:/etc/config/cors.json'
+      - './config/csp.json:/etc/config/csp.json'
+    networks:
+      network:
+
+  indexer:
+    environment:
+      - "S3_SECRET_KEY=dummy"
+      - "JWT_SECRET=Keibah7owaidaebe"
+    image: "gcr.io/magda-221800/magda-indexer:0.0.50-0"
+    entrypoint: [
+        "/app/bin/magda-indexer",
+        "-Dhttp.port=80",
+        "-Dregistry.webhookUrl=http://indexer/v0/registry-hook",
+        "-Dregistry.baseUrl=http://registry-api",
+        "-Dindexer.readSnapshots=false",
+        "-Dindexer.makeSnapshots=false",
+        "-Dakka.loglevel=INFO",
+        "-DelasticSearch.serverUrl=elasticsearch://elasticsearch:9200",
+        "-DelasticSearch.shardCount=1",
+        "-DelasticSearch.replicaCount=0",
+        "-Dauth.userId=00000000-0000-4000-8000-000000000000"
+    ]
+    networks:
+      network:
+
+  preview-map:
+    environment:
+      - "NODE_ENV=production"
+    image: "gcr.io/magda-221800/magda-preview-map:0.0.50-0"
+    networks:
+      network:
+
+  registry-api-full:
+    environment:
+      - "JWT_SECRET=Keibah7owaidaebe"
+      - "POSTGRES_USER=client"
+    image: "gcr.io/magda-221800/magda-registry-api:0.0.50-0"
+    entrypoint: [
+        "/app/bin/magda-registry-api",
+        "-Dhttp.port=80",
+        "-Dhttp.externalUrl.v0=http://minikube.data.gov.au:30100/api/v0/registry",
+        "-Ddb.default.url=jdbc:postgresql://registry-db/postgres",
+        "-Dakka.loglevel=INFO",
+        "-DauthApi.baseUrl=http://authorization-api",
+        "-Dscalikejdbc.global.loggingSQLAndTime.logLevel=info",
+        "-Dauthorization.skip=false",
+        "-Drole=full"
+    ]
+    networks:
+      network:
+
+  search-api:
+    image: "gcr.io/magda-221800/magda-search-api:0.0.50-0"
+    entrypoint:
+      - "/app/bin/magda-search-api"
+      - "-Dhttp.port=80"
+      - "-Dakka.loglevel=INFO"
+      - "-DelasticSearch.serverUrl=elasticsearch://elasticsearch:9200"
+    networks:
+      network:
+
+  web:
+    entrypoint: [
+        "node_modules/.bin/nodemon",
+        "--inspect",
+        "dist/index.js",
+        "--config", "/etc/config/config.json",
+        "--listenPort", "80",
+        "--baseExternalUrl", "http://minikube.data.gov.au:30100",
+        "--useLocalStyleSheet", "true",
+        "--registryApiBaseUrlInternal", "http://registry-api/v0"
+    ]
+    environment:
+      - "NODE_ENV=production"
+    image: gcr.io/magda-221800/magda-web-server:0.0.50-2
+    volumes:
+      - './config/web.json:/etc/config/config.json'
+      - '/Users/kevin/work/src/github.com/kelda-inc/magda-web-server/src:/usr/src/app/dist'
+    networks:
+      network:
+
+networks:
+  network:
