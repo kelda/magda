@@ -18,8 +18,8 @@ services:
 
   combined-db:
     image: "gcr.io/magda-221800/magda-postgres:0.0.50-2"
-    volumes_from:
-      - combined-db-data
+    volumes:
+      - /data
     environment:
       - "PGDATA=/data"
       - "PGUSER=postgres"
@@ -113,10 +113,7 @@ services:
       - "USER_ID=00000000-0000-4000-8000-000000000000"
       - "PGUSER=client"
     volumes:
-      - './config/routes.json:/etc/config/routes.json'
-      - './config/helmet.json:/etc/config/helmet.json'
-      - './config/cors.json:/etc/config/cors.json'
-      - './config/csp.json:/etc/config/csp.json'
+      - './gateway-config:/etc/config'
     networks:
       network:
 
@@ -192,7 +189,7 @@ services:
       - "NODE_ENV=production"
     image: gcr.io/magda-221800/magda-web-server:0.0.50-2
     volumes:
-      - './config/web.json:/etc/config/config.json'
+      - './web-config:/etc/config'
       - '/Users/kevin/work/src/github.com/kelda-inc/magda-web-server/src:/usr/src/app/dist'
     networks:
       network:
