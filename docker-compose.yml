@@ -18,6 +18,9 @@ services:
 
   combined-db:
     image: "gcr.io/magda-221800/magda-postgres:0.0.50-2"
+    # Don't boot until the data is finished copying.
+    depends_on:
+      - combined-db-data
     volumes:
       - /data
     environment:
@@ -58,31 +61,12 @@ services:
       network:
 
   elasticsearch:
-    image: 'elasticsearch:1'
-    #image: "gcr.io/magda-221800/magda-elasticsearch:0.0.50-1"
-    #volumes_from:
-      #- elasticsearch-data
-      ## TODO mount to data dir
-    #environment:
-      #- "NAMESPACE=namespace"
-      #- "NODE_NAME=node"
-      #- "NODE_DATA=true"
-      #- "NODE_MASTER=true"
-      #- "CLUSTER_NAME=myesdb"
-      #- "NODE_INGEST=true"
-      #- "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      ##- "ES_PLUGINS_INSTALL="
-      #- "NETWORK_HOST=0.0.0.0"
-      #- "HTTP_ENABLE=true"
-      #- "REPO=/snapshots"
-    networks:
-      network:
-
-  elasticsearch-data:
-    image: "gcr.io/magda-221800/magda-elasticsearch-data:0.0.50-2"
-    entrypoint: "tail -f /dev/null"
-    volumes:
-      - /data
+    image: "gcr.io/magda-221800/magda-elasticsearch:0.0.50-4"
+    environment:
+      # Bypass bootstrap checks for machine resources.
+      - "discovery.type=single-node"
+      - "cluster.name=myesdb"
+      - "node.name=node"
 
   gateway:
     ports:
@@ -135,6 +119,8 @@ services:
         "-DelasticSearch.replicaCount=0",
         "-Dauth.userId=00000000-0000-4000-8000-000000000000"
     ]
+    depends_on:
+      - "elasticsearch"
     networks:
       network:
 
@@ -171,6 +157,8 @@ services:
       - "-Dhttp.port=80"
       - "-Dakka.loglevel=INFO"
       - "-DelasticSearch.serverUrl=elasticsearch://elasticsearch:9200"
+    depends_on:
+      - "elasticsearch"
     networks:
       network:
 
