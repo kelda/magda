@@ -149,6 +149,8 @@ services:
     ]
     networks:
       network:
+        aliases:
+          - registry-api-read-only
 
   search-api:
     image: "gcr.io/magda-221800/magda-search-api:0.0.50-0"
