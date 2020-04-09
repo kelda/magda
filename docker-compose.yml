@@ -178,7 +178,7 @@ services:
     image: gcr.io/magda-221800/magda-web-server:0.0.50-2
     volumes:
       - './web-config:/etc/config'
-      - '/Users/kevin/work/src/github.com/kelda-inc/magda-web-server/src:/usr/src/app/dist'
+      - './web-server/src:/usr/src/app/dist'
     networks:
       network:
 
