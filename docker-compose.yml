@@ -22,7 +22,7 @@ services:
     depends_on:
       - combined-db-data
     volumes:
-      - /data
+      - 'db-data:/data'
     environment:
       - "PGDATA=/data"
       - "PGUSER=postgres"
@@ -41,7 +41,7 @@ services:
     image: "gcr.io/magda-221800/magda-postgres-data:0.0.50-2"
     entrypoint: "tail -f /dev/null"
     volumes:
-      - /data
+      - 'db-data:/data'
 
   content-api:
     image: "gcr.io/magda-221800/magda-content-api:0.0.50-0"
@@ -186,3 +186,6 @@ services:
 
 networks:
   network:
+
+volumes:
+  db-data:
