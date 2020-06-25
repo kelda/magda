@@ -18,9 +18,6 @@ services:
 
   combined-db:
     image: "gcr.io/magda-221800/magda-postgres:0.0.50-2"
-    # Don't boot until the data is finished copying.
-    depends_on:
-      - combined-db-data
     volumes:
       - 'db-data:/data'
     environment:
